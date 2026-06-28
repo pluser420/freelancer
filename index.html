@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BidCraft – Bid Generator</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- NAV -->
+  <nav>
+    <a href="index.html" class="nav-logo">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/>
+      </svg>
+      BidCraft
+    </a>
+    <ul class="nav-links">
+      <li><a href="index.html" class="active">Bid Generator</a></li>
+      <li><a href="settings.html">Settings</a></li>
+    </ul>
+  </nav>
+
+  <!-- MAIN -->
+  <div class="container">
+    <h1 class="page-title">Bid Generator</h1>
+    <p class="page-subtitle">Paste a project post and generate a winning bid in seconds.</p>
+
+    <!-- Warning if no API key -->
+    <div id="no-key-warning" class="card" style="border-color:#f0ad4e; background:#fffbf2; display:none; margin-bottom:20px;">
+      <p style="font-size:0.9rem; color:#856404;">
+        ⚠️ No API key found. Please go to
+        <a href="settings.html" style="color:var(--primary); font-weight:600;">Settings</a>
+        and add your OpenAI or Gemini key before generating bids.
+      </p>
+    </div>
+
+    <div class="generator-grid">
+      <!-- LEFT: Input -->
+      <div class="card">
+        <div class="card-title">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/>
+          </svg>
+          Project Post
+        </div>
+        <div class="form-group">
+          <label for="project-post">Paste the client's project description</label>
+          <textarea id="project-post" placeholder="e.g. I need a React developer to build a dashboard with charts, user auth, and REST API integration. Budget: $500. Timeline: 2 weeks." rows="10"></textarea>
+        </div>
+        <button id="generate-btn" class="btn btn-primary btn-block">
+          <span class="btn-text">✨ Generate Bid</span>
+          <span class="spinner"></span>
+        </button>
+      </div>
+
+      <!-- RIGHT: Output -->
+      <div class="card">
+        <div class="card-title">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+          </svg>
+          Generated Bid
+        </div>
+
+        <div id="bid-output" class="bid-output empty">
+          Your bid will appear here.<br/>Click <strong>Generate Bid</strong> to start.
+        </div>
+
+        <div class="bid-actions">
+          <button id="copy-btn" class="btn btn-outline" style="display:none;">
+            📋 Copy
+          </button>
+          <button id="clear-btn" class="btn btn-danger" style="display:none;">
+            🗑 Clear
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
