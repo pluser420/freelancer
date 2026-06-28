@@ -11,7 +11,6 @@ const avatarPlaceholder = document.getElementById('avatar-placeholder');
 const removePhotoBtn  = document.getElementById('remove-photo');
 
 const displayName     = document.getElementById('display-name');
-const yourTitle       = document.getElementById('your-title');
 
 const openaiKey       = document.getElementById('openai-key');
 const geminiKey       = document.getElementById('gemini-key');
@@ -21,9 +20,7 @@ const geminiField     = document.getElementById('gemini-field');
 
 const bidStyle        = document.getElementById('bid-style');
 const bidPrompt       = document.getElementById('bid-prompt');
-const experienceSummary = document.getElementById('experience-summary');
 const promptCount     = document.getElementById('prompt-count');
-const expCount        = document.getElementById('exp-count');
 
 const saveBtn         = document.getElementById('save-btn');
 const savedBadge      = document.getElementById('saved-badge');
@@ -36,12 +33,10 @@ window.addEventListener('DOMContentLoaded', () => {
   const s = load();
 
   displayName.value = s.displayName || '';
-  yourTitle.value   = s.yourTitle   || '';
   openaiKey.value   = s.openaiKey   || '';
   geminiKey.value   = s.geminiKey   || '';
   bidStyle.value    = s.bidStyle    || 'professional';
   bidPrompt.value   = s.bidPrompt   || '';
-  experienceSummary.value = s.experienceSummary || '';
 
   updateCharCounts();
 
@@ -109,11 +104,9 @@ function showPhoto(dataUrl) {
 
 // ── Char counters ─────────────────────────────────────────────
 bidPrompt.addEventListener('input', updateCharCounts);
-experienceSummary.addEventListener('input', updateCharCounts);
 
 function updateCharCounts() {
   promptCount.textContent = bidPrompt.value.length;
-  expCount.textContent    = experienceSummary.value.length;
 }
 
 // ── Save ──────────────────────────────────────────────────────
@@ -123,10 +116,8 @@ saveBtn.addEventListener('click', () => {
     openaiKey:          openaiKey.value.trim(),
     geminiKey:          geminiKey.value.trim(),
     displayName:        displayName.value.trim(),
-    yourTitle:          yourTitle.value.trim(),
     bidStyle:           bidStyle.value,
     bidPrompt:          bidPrompt.value.trim(),
-    experienceSummary:  experienceSummary.value.trim(),
     photoDataUrl:       photoDataUrl,
   };
 

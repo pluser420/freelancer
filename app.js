@@ -86,8 +86,6 @@ clearBtn.addEventListener('click', () => {
 
 function buildSystemPrompt(settings) {
   const name       = settings.displayName     || 'a freelancer';
-  const title      = settings.yourTitle        || '';
-  const experience = settings.experienceSummary || '';
   const style      = settings.bidStyle         || 'professional';
   const customPrompt = settings.bidPrompt      || '';
 
@@ -123,8 +121,6 @@ Keep it genuine — do NOT use filler phrases like "I hope this message finds yo
 
   // Append identity context
   if (name) prompt += `\n\nFreelancer name: ${name}`;
-  if (title) prompt += `\nFreelancer title/role: ${title}`;
-  if (experience) prompt += `\n\nFreelancer experience summary:\n${experience}`;
 
   prompt += '\n\nRespond with ONLY the bid text — no extra commentary, no labels, no "here is your bid" intro.';
 
