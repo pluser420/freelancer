@@ -1,134 +1,134 @@
 /* ─────────────────────────────────────────────────
-   app.js  –  Bid Generator page logic
+   app.js  –  Bid Generator page
    ───────────────────────────────────────────────── */
 
-const generateBtn = document.getElementById('generate-btn');
-const clearBtn    = document.getElementById('clear-btn');
-const copyBtn     = document.getElementById('copy-btn');
-const bidOutput   = document.getElementById('bid-output');
-const projectPost = document.getElementById('project-post');
-const noKeyWarn   = document.getElementById('no-key-warning');
+const generateBtn  = document.getElementById('generate-btn');
+const bidAsSelect  = document.getElementById('bid-as');
+const projectPost  = document.getElementById('project-post');
+const bidOutput    = document.getElementById('bid-output');
+const cutBtn       = document.getElementById('cut-btn');
+const selectedAvatar = document.getElementById('selectedAvatar');
 
-// ── On load: check for API key ──────────────────────────────
+// ── On load ──────────────────────────────────────────────────
 window.addEventListener('DOMContentLoaded', () => {
-  const settings = loadSettings();
-  const hasKey = (settings.provider === 'openai' && settings.openaiKey) ||
-                 (settings.provider === 'gemini'  && settings.geminiKey);
-  if (!hasKey) {
-    noKeyWarn.style.display = 'block';
+  populateFreelancerDropdown();
+});
+
+function populateFreelancerDropdown() {
+  const freelancers = loadFreelancers();
+  bidAsSelect.innerHTML = '<option value="">— Select a freelancer —</option>';
+  freelancers.forEach((fl, i) => {
+    const opt = document.createElement('option');
+    opt.value = i;
+    opt.textContent = fl.name || `Freelancer ${i + 1}`;
+    bidAsSelect.appendChild(opt);
+  });
+
+  // Auto-select last used
+  const lastIdx = localStorage.getItem('bidcraft_last_fl');
+  if (lastIdx !== null && freelancers[lastIdx]) {
+    bidAsSelect.value = lastIdx;
+    updateAvatar(freelancers[lastIdx]);
+  }
+}
+
+bidAsSelect.addEventListener('change', () => {
+  const freelancers = loadFreelancers();
+  const fl = freelancers[bidAsSelect.value];
+  if (fl) {
+    updateAvatar(fl);
+    localStorage.setItem('bidcraft_last_fl', bidAsSelect.value);
+  } else {
+    resetAvatar();
   }
 });
 
-// ── Generate ────────────────────────────────────────────────
+function updateAvatar(fl) {
+  if (fl.photo) {
+    selectedAvatar.innerHTML = `<img src="${fl.photo}" alt="${fl.name}" />`;
+  } else {
+    selectedAvatar.innerHTML = `<span>${(fl.name || '?')[0].toUpperCase()}</span>`;
+  }
+}
+
+function resetAvatar() {
+  selectedAvatar.innerHTML = '<span>?</span>';
+}
+
+// ── Generate ─────────────────────────────────────────────────
 generateBtn.addEventListener('click', async () => {
   const post = projectPost.value.trim();
   if (!post) {
     showToast('Please paste a project description first.', 'error');
-    projectPost.focus();
     return;
   }
 
-  const settings = loadSettings();
-  const provider = settings.provider || 'openai';
-  const apiKey   = provider === 'openai' ? settings.openaiKey : settings.geminiKey;
+  const flIdx = bidAsSelect.value;
+  if (flIdx === '') {
+    showToast('Please select a freelancer first.', 'error');
+    return;
+  }
+
+  const freelancers = loadFreelancers();
+  const fl = freelancers[flIdx];
+  if (!fl) { showToast('Freelancer not found.', 'error'); return; }
+
+  const apiSettings = loadApiSettings();
+  const provider = apiSettings.provider || 'openai';
+  const apiKey   = provider === 'openai' ? apiSettings.openaiKey : apiSettings.geminiKey;
 
   if (!apiKey) {
-    showToast('No API key found. Please add one in Settings.', 'error');
+    showToast('No API key found. Add one in Settings.', 'error');
     return;
   }
 
-  // Build system prompt
-  const systemPrompt = buildSystemPrompt(settings);
-
   setLoading(true);
-  setBidOutput('', false);
+  setBidOutput('', true);
+
+  // Build prompt
+  const systemPrompt = buildPrompt(fl);
 
   try {
-    let bidText = '';
-
+    let text = '';
     if (provider === 'openai') {
-      bidText = await callOpenAI(apiKey, systemPrompt, post);
+      text = await callOpenAI(apiKey, systemPrompt, post);
     } else {
-      bidText = await callGemini(apiKey, systemPrompt, post);
+      text = await callGemini(apiKey, systemPrompt, post);
     }
+    setBidOutput(text, false);
+    cutBtn.style.display = 'inline-flex';
 
-    setBidOutput(bidText, false);
-    copyBtn.style.display  = 'inline-flex';
-    clearBtn.style.display = 'inline-flex';
-    noKeyWarn.style.display = 'none';
-    showToast('Bid generated!', 'success');
+    // Parse budget/time from project post and show in pills
+    parsePills(post);
   } catch (err) {
-    console.error(err);
-    showToast(err.message || 'Something went wrong. Check your API key.', 'error');
+    showToast(err.message || 'Something went wrong.', 'error');
     setBidOutput('', true);
   } finally {
     setLoading(false);
   }
 });
 
-// ── Copy ─────────────────────────────────────────────────────
-copyBtn.addEventListener('click', () => {
-  const text = bidOutput.textContent;
-  navigator.clipboard.writeText(text).then(() => {
+// ── Cut (copy) ────────────────────────────────────────────────
+cutBtn.addEventListener('click', () => {
+  navigator.clipboard.writeText(bidOutput.textContent).then(() => {
     showToast('Copied to clipboard!', 'success');
   });
 });
 
-// ── Clear ────────────────────────────────────────────────────
-clearBtn.addEventListener('click', () => {
-  setBidOutput('', true);
-  copyBtn.style.display  = 'none';
-  clearBtn.style.display = 'none';
-  projectPost.value = '';
-});
-
 // ── Helpers ──────────────────────────────────────────────────
+function buildPrompt(fl) {
+  const name   = fl.name   || 'a freelancer';
+  const prompt = fl.prompt || '';
 
-function buildSystemPrompt(settings) {
-  const name       = settings.displayName     || 'a freelancer';
-  const style      = settings.bidStyle         || 'professional';
-  const customPrompt = settings.bidPrompt      || '';
-
-  // Style descriptions
-  const styleMap = {
-    professional: 'Write in a professional and formal tone.',
-    friendly:     'Write in a friendly, warm, and conversational tone.',
-    concise:      'Keep the bid short and concise — maximum 150 words.',
-    detailed:     'Write a detailed, comprehensive bid that covers all aspects.',
-    custom:       '',
-  };
-
-  let prompt = '';
-
-  if (style === 'custom' && customPrompt) {
-    // User's fully custom prompt
-    prompt = customPrompt;
-  } else {
-    // Build structured prompt
-    prompt = customPrompt
-      ? customPrompt
-      : `You are a professional freelancer writing a bid proposal for a client project. ${styleMap[style] || styleMap.professional}
-
-Your goal is to write a compelling, personalised bid that:
-1. Opens with a hook that directly references the project's specific needs
-2. Briefly explains why you are the perfect fit
-3. Mentions relevant skills and past experience
-4. Proposes a clear plan or approach
-5. Ends with a confident, friendly call to action
-
-Keep it genuine — do NOT use filler phrases like "I hope this message finds you well".`;
+  if (prompt) {
+    return `You are ${name}, a professional freelancer writing a bid proposal.\n\n${prompt}\n\nRespond with ONLY the bid text.`;
   }
 
-  // Append identity context
-  if (name) prompt += `\n\nFreelancer name: ${name}`;
-
-  prompt += '\n\nRespond with ONLY the bid text — no extra commentary, no labels, no "here is your bid" intro.';
-
-  return prompt;
+  return `You are ${name}, a professional freelancer writing a compelling bid proposal. Be direct, personalised, and end with a call to action. Respond with ONLY the bid text.`;
 }
 
-async function callOpenAI(apiKey, systemPrompt, projectPost) {
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+async function callOpenAI(apiKey, systemPrompt, post) {
+  const res = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -138,48 +138,38 @@ async function callOpenAI(apiKey, systemPrompt, projectPost) {
       model: 'gpt-4o-mini',
       messages: [
         { role: 'system', content: systemPrompt },
-        { role: 'user',   content: `Project post:\n\n${projectPost}` },
+        { role: 'user',   content: `Project post:\n\n${post}` },
       ],
       temperature: 0.75,
-      max_tokens: 600,
+      max_tokens: 700,
     }),
   });
 
-  if (!response.ok) {
-    const err = await response.json().catch(() => ({}));
-    const msg = err?.error?.message || `OpenAI error ${response.status}`;
-    throw new Error(msg);
+  if (!res.ok) {
+    const e = await res.json().catch(() => ({}));
+    throw new Error(e?.error?.message || `OpenAI error ${res.status}`);
   }
-
-  const data = await response.json();
-  return data.choices?.[0]?.message?.content?.trim() || 'No response from OpenAI.';
+  const data = await res.json();
+  return data.choices?.[0]?.message?.content?.trim() || '';
 }
 
-async function callGemini(apiKey, systemPrompt, projectPost) {
+async function callGemini(apiKey, systemPrompt, post) {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${encodeURIComponent(apiKey)}`;
-
-  const combined = `${systemPrompt}\n\nProject post:\n\n${projectPost}`;
-
-  const response = await fetch(url, {
+  const res = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      contents: [{ parts: [{ text: combined }] }],
-      generationConfig: {
-        temperature: 0.75,
-        maxOutputTokens: 600,
-      },
+      contents: [{ parts: [{ text: `${systemPrompt}\n\nProject post:\n\n${post}` }] }],
+      generationConfig: { temperature: 0.75, maxOutputTokens: 700 },
     }),
   });
 
-  if (!response.ok) {
-    const err = await response.json().catch(() => ({}));
-    const msg = err?.error?.message || `Gemini error ${response.status}`;
-    throw new Error(msg);
+  if (!res.ok) {
+    const e = await res.json().catch(() => ({}));
+    throw new Error(e?.error?.message || `Gemini error ${res.status}`);
   }
-
-  const data = await response.json();
-  return data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || 'No response from Gemini.';
+  const data = await res.json();
+  return data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || '';
 }
 
 function setLoading(on) {
@@ -189,21 +179,43 @@ function setLoading(on) {
 
 function setBidOutput(text, empty) {
   if (empty || !text) {
-    bidOutput.textContent = '';
-    bidOutput.innerHTML   = 'Your bid will appear here.<br/>Click <strong>Generate Bid</strong> to start.';
+    bidOutput.textContent = 'Your bid will appear here.';
     bidOutput.classList.add('empty');
+    cutBtn.style.display = 'none';
   } else {
     bidOutput.textContent = text;
     bidOutput.classList.remove('empty');
   }
 }
 
-function loadSettings() {
-  try {
-    return JSON.parse(localStorage.getItem('bidcraft_settings') || '{}');
-  } catch {
-    return {};
+// Try to parse budget/time from post text for the nav pills
+function parsePills(text) {
+  const budgetMatch = text.match(/\$[\d,]+\s*[-–]\s*\$[\d,]+|\$[\d,]+\s*(?:USD|usd)?/);
+  const timeMatch   = text.match(/(\d+)\s*(day|week|month)s?/i);
+
+  const budgetPill = document.getElementById('budget-pill');
+  const timePill   = document.getElementById('time-pill');
+
+  if (budgetPill && budgetMatch) {
+    budgetPill.textContent = '$ ' + budgetMatch[0].replace(/\$/g, '').trim();
   }
+  if (timePill && timeMatch) {
+    const num  = timeMatch[1];
+    const unit = timeMatch[2].toLowerCase();
+    const days = unit === 'week' ? num * 7 : unit === 'month' ? num * 30 : num;
+    timePill.textContent = `⏱ ${days} days`;
+  }
+}
+
+// ── Storage helpers ───────────────────────────────────────────
+function loadFreelancers() {
+  try { return JSON.parse(localStorage.getItem('bidcraft_freelancers') || '[]'); }
+  catch { return []; }
+}
+
+function loadApiSettings() {
+  try { return JSON.parse(localStorage.getItem('bidcraft_api') || '{}'); }
+  catch { return {}; }
 }
 
 // ── Toast ─────────────────────────────────────────────────────
@@ -211,8 +223,6 @@ function showToast(msg, type = '') {
   const toast = document.getElementById('toast');
   toast.textContent = msg;
   toast.className   = 'show ' + type;
-  clearTimeout(toast._timer);
-  toast._timer = setTimeout(() => {
-    toast.className = '';
-  }, 3200);
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => { toast.className = ''; }, 3200);
 }

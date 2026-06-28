@@ -1,56 +1,49 @@
 /* ─────────────────────────────────────────────────
-   settings.js  –  Settings page logic
+   settings.js  –  Settings page
+   Multi-freelancer management + API key storage
    ───────────────────────────────────────────────── */
 
-const STORAGE_KEY = 'bidcraft_settings';
+const FL_KEY  = 'bidcraft_freelancers';
+const API_KEY = 'bidcraft_api';
 
 // ── Elements ──────────────────────────────────────────────────
-const photoInput      = document.getElementById('photo-input');
-const avatarPreview   = document.getElementById('avatar-preview');
-const avatarPlaceholder = document.getElementById('avatar-placeholder');
-const removePhotoBtn  = document.getElementById('remove-photo');
+const formPhotoInput       = document.getElementById('form-photo-input');
+const formPhotoPreview     = document.getElementById('form-photo-preview');
+const formPhotoPlaceholder = document.getElementById('form-photo-placeholder');
+const formName             = document.getElementById('form-name');
+const formPrompt           = document.getElementById('form-prompt');
+const addBtn               = document.getElementById('add-btn');
+const cancelEditBtn        = document.getElementById('cancel-edit-btn');
+const formModeTitle        = document.getElementById('form-mode-title');
+const freelancerList       = document.getElementById('freelancer-list');
 
-const displayName     = document.getElementById('display-name');
+const providerTabs  = document.querySelectorAll('.provider-tab');
+const openaiField   = document.getElementById('openai-field');
+const geminiField   = document.getElementById('gemini-field');
+const openaiKey     = document.getElementById('openai-key');
+const geminiKey     = document.getElementById('gemini-key');
+const saveApiBtn    = document.getElementById('save-api-btn');
+const apiSaved      = document.getElementById('api-saved');
 
-const openaiKey       = document.getElementById('openai-key');
-const geminiKey       = document.getElementById('gemini-key');
-const providerTabs    = document.querySelectorAll('.provider-tab');
-const openaiField     = document.getElementById('openai-field');
-const geminiField     = document.getElementById('gemini-field');
+let selectedProvider = 'openai';
+let formPhotoData    = null;  // base64
+let editingIndex     = null;  // null = add mode, number = edit mode
 
-const bidStyle        = document.getElementById('bid-style');
-const bidPrompt       = document.getElementById('bid-prompt');
-const promptCount     = document.getElementById('prompt-count');
-
-const saveBtn         = document.getElementById('save-btn');
-const savedBadge      = document.getElementById('saved-badge');
-
-let selectedProvider  = 'openai';
-let photoDataUrl      = null;
-
-// ── Load saved settings on page load ─────────────────────────
+// ── Init ──────────────────────────────────────────────────────
 window.addEventListener('DOMContentLoaded', () => {
-  const s = load();
-
-  displayName.value = s.displayName || '';
-  openaiKey.value   = s.openaiKey   || '';
-  geminiKey.value   = s.geminiKey   || '';
-  bidStyle.value    = s.bidStyle    || 'professional';
-  bidPrompt.value   = s.bidPrompt   || '';
-
-  updateCharCounts();
-
-  // Provider tab
-  selectedProvider = s.provider || 'openai';
-  setActiveProvider(selectedProvider);
-
-  // Photo
-  if (s.photoDataUrl) {
-    showPhoto(s.photoDataUrl);
-  }
+  loadApiForm();
+  renderFreelancers();
 });
 
-// ── Provider tab switch ───────────────────────────────────────
+// ── API Key section ───────────────────────────────────────────
+function loadApiForm() {
+  const s = loadApiSettings();
+  selectedProvider = s.provider || 'openai';
+  openaiKey.value  = s.openaiKey || '';
+  geminiKey.value  = s.geminiKey || '';
+  setActiveProvider(selectedProvider);
+}
+
 providerTabs.forEach(tab => {
   tab.addEventListener('click', () => {
     selectedProvider = tab.dataset.provider;
@@ -58,105 +51,194 @@ providerTabs.forEach(tab => {
   });
 });
 
-function setActiveProvider(provider) {
-  providerTabs.forEach(t => t.classList.toggle('active', t.dataset.provider === provider));
-  openaiField.classList.toggle('active', provider === 'openai');
-  geminiField.classList.toggle('active', provider === 'gemini');
+function setActiveProvider(p) {
+  providerTabs.forEach(t => t.classList.toggle('active', t.dataset.provider === p));
+  openaiField.classList.toggle('active', p === 'openai');
+  geminiField.classList.toggle('active', p === 'gemini');
 }
 
+// Toggle show/hide keys
+document.querySelectorAll('.toggle-key-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const input = document.getElementById(btn.dataset.target);
+    const show  = input.type === 'password';
+    input.type  = show ? 'text' : 'password';
+    btn.textContent = show ? 'Hide' : 'Show';
+  });
+});
+
+saveApiBtn.addEventListener('click', () => {
+  const settings = {
+    provider:  selectedProvider,
+    openaiKey: openaiKey.value.trim(),
+    geminiKey: geminiKey.value.trim(),
+  };
+  localStorage.setItem(API_KEY, JSON.stringify(settings));
+  apiSaved.classList.add('show');
+  setTimeout(() => apiSaved.classList.remove('show'), 2500);
+});
+
 // ── Photo upload ──────────────────────────────────────────────
-photoInput.addEventListener('change', (e) => {
+formPhotoInput.addEventListener('change', (e) => {
   const file = e.target.files[0];
-  if (!file) return;
-
-  if (!file.type.startsWith('image/')) {
-    showToast('Please select an image file.', 'error');
-    return;
-  }
-
-  if (file.size > 5 * 1024 * 1024) {
-    showToast('Image must be under 5 MB.', 'error');
-    return;
-  }
+  if (!file || !file.type.startsWith('image/')) return;
+  if (file.size > 5 * 1024 * 1024) { showToast('Image must be under 5 MB.', 'error'); return; }
 
   const reader = new FileReader();
-  reader.onload = (ev) => {
-    photoDataUrl = ev.target.result;
-    showPhoto(photoDataUrl);
+  reader.onload = ev => {
+    formPhotoData = ev.target.result;
+    formPhotoPreview.src = formPhotoData;
+    formPhotoPreview.style.display = 'block';
+    formPhotoPlaceholder.style.display = 'none';
   };
   reader.readAsDataURL(file);
 });
 
-removePhotoBtn.addEventListener('click', () => {
-  photoDataUrl = null;
-  avatarPreview.style.display = 'none';
-  avatarPlaceholder.style.display = 'flex';
-  removePhotoBtn.style.display = 'none';
-  photoInput.value = '';
+// ── Add / Save freelancer ─────────────────────────────────────
+addBtn.addEventListener('click', () => {
+  const name   = formName.value.trim();
+  const prompt = formPrompt.value.trim();
+
+  if (!name) { showToast('Please enter a name.', 'error'); formName.focus(); return; }
+
+  const freelancers = loadFreelancers();
+  const fl = { name, prompt, photo: formPhotoData };
+
+  if (editingIndex !== null) {
+    // Preserve photo if not changed
+    if (!formPhotoData && freelancers[editingIndex]?.photo) {
+      fl.photo = freelancers[editingIndex].photo;
+    }
+    freelancers[editingIndex] = fl;
+    showToast(`${name} updated.`, 'success');
+  } else {
+    freelancers.push(fl);
+    showToast(`${name} added.`, 'success');
+  }
+
+  saveFreelancers(freelancers);
+  renderFreelancers();
+  resetForm();
 });
 
-function showPhoto(dataUrl) {
-  avatarPreview.src = dataUrl;
-  avatarPreview.style.display = 'block';
-  avatarPlaceholder.style.display = 'none';
-  removePhotoBtn.style.display = 'inline-flex';
+cancelEditBtn.addEventListener('click', resetForm);
+
+function resetForm() {
+  editingIndex  = null;
+  formPhotoData = null;
+  formName.value   = '';
+  formPrompt.value = '';
+  formPhotoPreview.style.display     = 'none';
+  formPhotoPlaceholder.style.display = 'flex';
+  formPhotoInput.value = '';
+  addBtn.textContent        = 'Add freelancer';
+  cancelEditBtn.style.display = 'none';
+  formModeTitle.textContent = 'Add freelancer';
 }
 
-// ── Char counters ─────────────────────────────────────────────
-bidPrompt.addEventListener('input', updateCharCounts);
+// ── Render list ───────────────────────────────────────────────
+function renderFreelancers() {
+  const freelancers = loadFreelancers();
+  freelancerList.innerHTML = '';
 
-function updateCharCounts() {
-  promptCount.textContent = bidPrompt.value.length;
-}
-
-// ── Save ──────────────────────────────────────────────────────
-saveBtn.addEventListener('click', () => {
-  const settings = {
-    provider:           selectedProvider,
-    openaiKey:          openaiKey.value.trim(),
-    geminiKey:          geminiKey.value.trim(),
-    displayName:        displayName.value.trim(),
-    bidStyle:           bidStyle.value,
-    bidPrompt:          bidPrompt.value.trim(),
-    photoDataUrl:       photoDataUrl,
-  };
-
-  // Validate: at least one key
-  if (!settings.openaiKey && !settings.geminiKey) {
-    showToast('Please enter at least one API key.', 'error');
+  if (!freelancers.length) {
+    freelancerList.innerHTML = '<p class="empty-list">No freelancers added yet.</p>';
     return;
   }
 
-  save(settings);
-  showSavedBadge();
-  showToast('Settings saved!', 'success');
-});
+  freelancers.forEach((fl, i) => {
+    const item = document.createElement('div');
+    item.className = 'freelancer-item';
 
-function showSavedBadge() {
-  savedBadge.classList.add('show');
-  setTimeout(() => savedBadge.classList.remove('show'), 2500);
+    const avatarHTML = fl.photo
+      ? `<div class="fl-avatar"><img src="${fl.photo}" alt="${fl.name}" /></div>`
+      : `<div class="fl-avatar">${(fl.name || '?')[0].toUpperCase()}</div>`;
+
+    const previewText = fl.prompt
+      ? fl.prompt.substring(0, 80) + (fl.prompt.length > 80 ? '…' : '')
+      : '<em>No prompt</em>';
+
+    item.innerHTML = `
+      ${avatarHTML}
+      <div class="fl-info">
+        <div class="fl-name">${escapeHtml(fl.name)}</div>
+        <div class="fl-prompt-preview">${escapeHtml(previewText)}</div>
+      </div>
+      <div class="fl-actions">
+        <button class="fl-btn edit" data-index="${i}" title="Edit">✏️</button>
+        <button class="fl-btn delete" data-index="${i}" title="Delete">🗑️</button>
+      </div>
+    `;
+
+    item.querySelector('.edit').addEventListener('click', () => startEdit(i));
+    item.querySelector('.delete').addEventListener('click', () => deleteFreelancer(i));
+
+    freelancerList.appendChild(item);
+  });
 }
 
-// ── Storage helpers ───────────────────────────────────────────
-function save(data) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-}
+function startEdit(i) {
+  const freelancers = loadFreelancers();
+  const fl = freelancers[i];
 
-function load() {
-  try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
-  } catch {
-    return {};
+  editingIndex  = i;
+  formPhotoData = fl.photo || null;
+  formName.value   = fl.name || '';
+  formPrompt.value = fl.prompt || '';
+
+  if (fl.photo) {
+    formPhotoPreview.src = fl.photo;
+    formPhotoPreview.style.display     = 'block';
+    formPhotoPlaceholder.style.display = 'none';
+  } else {
+    formPhotoPreview.style.display     = 'none';
+    formPhotoPlaceholder.style.display = 'flex';
   }
+
+  addBtn.textContent          = 'Save changes';
+  cancelEditBtn.style.display = 'inline-flex';
+  formModeTitle.textContent   = 'Edit freelancer';
+  formName.focus();
 }
 
-// ── Toast ─────────────────────────────────────────────────────
+function deleteFreelancer(i) {
+  const freelancers = loadFreelancers();
+  const name = freelancers[i]?.name || 'Freelancer';
+  freelancers.splice(i, 1);
+  saveFreelancers(freelancers);
+  renderFreelancers();
+  showToast(`${name} removed.`, 'success');
+  if (editingIndex === i) resetForm();
+}
+
+// ── Storage ───────────────────────────────────────────────────
+function loadFreelancers() {
+  try { return JSON.parse(localStorage.getItem(FL_KEY) || '[]'); }
+  catch { return []; }
+}
+
+function saveFreelancers(list) {
+  localStorage.setItem(FL_KEY, JSON.stringify(list));
+}
+
+function loadApiSettings() {
+  try { return JSON.parse(localStorage.getItem(API_KEY) || '{}'); }
+  catch { return {}; }
+}
+
+// ── Utils ─────────────────────────────────────────────────────
+function escapeHtml(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
 function showToast(msg, type = '') {
   const toast = document.getElementById('toast');
   toast.textContent = msg;
   toast.className   = 'show ' + type;
-  clearTimeout(toast._timer);
-  toast._timer = setTimeout(() => {
-    toast.className = '';
-  }, 3200);
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => { toast.className = ''; }, 3200);
 }

@@ -7,138 +7,115 @@
   <link rel="icon" type="image/svg+xml" href="favicon.svg" />
   <link rel="stylesheet" href="style.css" />
 </head>
-<body>
+<body class="dark">
 
   <!-- NAV -->
   <nav>
-    <a href="index.html" class="nav-logo">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/>
-      </svg>
-      BidCraft
-    </a>
-    <ul class="nav-links">
-      <li><a href="index.html">Bid Generator</a></li>
-      <li><a href="settings.html" class="active">Settings</a></li>
-    </ul>
-    <button class="theme-toggle" id="themeToggle" title="Toggle dark/light mode">
-      <span class="toggle-icon">🌙</span>
-      <span class="toggle-label">Dark</span>
-    </button>
+    <div class="nav-left">
+      <a href="index.html" class="nav-logo">
+        <img src="favicon.svg" alt="BidCraft" class="nav-logo-img" />
+        BidCraft
+      </a>
+      <div class="nav-pills">
+        <span class="pill pill-green">$ —</span>
+        <span class="pill pill-outline">⏱ —</span>
+      </div>
+    </div>
+    <div class="nav-right">
+      <a href="index.html" class="nav-link">Bids Generator</a>
+      <a href="settings.html" class="nav-link active">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+        Settings
+      </a>
+      <button class="theme-toggle" id="themeToggle">
+        <span class="toggle-icon">☀️</span>
+      </button>
+    </div>
   </nav>
 
   <!-- MAIN -->
   <div class="container">
+    <h1 class="page-title">Settings</h1>
+    <p class="page-subtitle">Register the freelancers you bid as. Their bid prompt shapes every generated proposal.</p>
+
+    <!-- API KEY ROW -->
+    <div class="api-bar">
+      <div class="api-bar-group">
+        <label class="api-label">AI Provider</label>
+        <div class="provider-tabs">
+          <button class="provider-tab active" data-provider="openai">OpenAI</button>
+          <button class="provider-tab" data-provider="gemini">Gemini</button>
+        </div>
+      </div>
+      <div class="api-bar-group api-key-group">
+        <div id="openai-field" class="key-field active">
+          <label class="api-label" for="openai-key">OpenAI API Key</label>
+          <div class="key-input-row">
+            <input type="password" id="openai-key" placeholder="sk-…" autocomplete="off" />
+            <button class="btn btn-ghost-sm toggle-key-btn" data-target="openai-key">Show</button>
+          </div>
+        </div>
+        <div id="gemini-field" class="key-field">
+          <label class="api-label" for="gemini-key">Gemini API Key</label>
+          <div class="key-input-row">
+            <input type="password" id="gemini-key" placeholder="AIza… or AQ.…" autocomplete="off" />
+            <button class="btn btn-ghost-sm toggle-key-btn" data-target="gemini-key">Show</button>
+          </div>
+        </div>
+      </div>
+      <button id="save-api-btn" class="btn btn-green save-api-btn">Save Key</button>
+      <span id="api-saved" class="saved-badge">✅ Saved</span>
+    </div>
+
     <div class="settings-grid">
 
-      <!-- LEFT COLUMN -->
-      <div>
+      <!-- LEFT: Add freelancer form -->
+      <div class="panel">
+        <h3 class="panel-title">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          <span id="form-mode-title">Add freelancer</span>
+        </h3>
 
-        <!-- Profile Photo -->
-        <div class="card" style="margin-bottom:20px;">
-          <div class="card-title">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/>
-            </svg>
-            Profile
-          </div>
-
-          <div class="avatar-upload">
-            <div id="avatar-placeholder" class="avatar-placeholder">👤</div>
-            <img id="avatar-preview" class="avatar-preview" src="" alt="Profile photo" style="display:none;" />
-            <div style="text-align:center;">
-              <label for="photo-input" class="btn btn-outline" style="cursor:pointer; display:inline-flex;">
-                📷 Upload Photo
-              </label>
-              <input type="file" id="photo-input" accept="image/*" style="display:none;" />
-              <button id="remove-photo" class="btn btn-danger" style="display:none; margin-top:8px;">Remove</button>
+        <div class="freelancer-form">
+          <!-- Photo upload -->
+          <div class="photo-row">
+            <div class="photo-wrap">
+              <div id="form-photo-placeholder" class="photo-placeholder-lg">?</div>
+              <img id="form-photo-preview" class="photo-preview-lg" src="" alt="" style="display:none;" />
             </div>
-          </div>
-
-          <div class="form-group" style="margin-top:20px;">
-            <label for="display-name">Your Name</label>
-            <input type="text" id="display-name" placeholder="e.g. Alex Johnson" />
-          </div>
-
-
-        </div>
-
-        <!-- API Key -->
-        <div class="card">
-          <div class="card-title">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/>
-            </svg>
-            AI Provider &amp; API Key
-          </div>
-
-          <div class="provider-tabs">
-            <button class="provider-tab active" data-provider="openai">OpenAI</button>
-            <button class="provider-tab" data-provider="gemini">Gemini</button>
-          </div>
-
-          <div id="openai-field" class="key-field active form-group">
-            <label for="openai-key">OpenAI API Key</label>
-            <input type="password" id="openai-key" placeholder="sk-..." autocomplete="off" />
-            <p class="input-hint">Get your key at <a href="https://platform.openai.com/api-keys" target="_blank" style="color:var(--primary);">platform.openai.com</a></p>
-          </div>
-
-          <div id="gemini-field" class="key-field form-group">
-            <label for="gemini-key">Gemini API Key</label>
-            <input type="password" id="gemini-key" placeholder="AIza..." autocomplete="off" />
-            <p class="input-hint">Get your key at <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color:var(--primary);">Google AI Studio</a></p>
-          </div>
-        </div>
-
-      </div>
-
-      <!-- RIGHT COLUMN -->
-      <div>
-
-        <!-- Bid Style / Prompt -->
-        <div class="card">
-          <div class="card-title">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/>
-            </svg>
-            Bid Style &amp; Prompt
+            <label for="form-photo-input" class="btn btn-ghost-sm upload-btn">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              Upload photo
+            </label>
+            <input type="file" id="form-photo-input" accept="image/*" style="display:none;" />
           </div>
 
           <div class="form-group">
-            <label for="bid-style">Bid Style</label>
-            <select id="bid-style">
-              <option value="professional">Professional &amp; Formal</option>
-              <option value="friendly">Friendly &amp; Conversational</option>
-              <option value="concise">Short &amp; Concise</option>
-              <option value="detailed">Detailed &amp; Comprehensive</option>
-              <option value="custom">Custom (use prompt below)</option>
-            </select>
-            <p class="input-hint">Defines the overall tone of your generated bids.</p>
+            <label for="form-name">Name</label>
+            <input type="text" id="form-name" placeholder="e.g. Alex Morgan" />
           </div>
 
           <div class="form-group">
-            <label for="bid-prompt">Custom Bid Prompt</label>
-            <textarea id="bid-prompt" rows="7" maxlength="2000"
-              placeholder="Describe how you want your bids to be written. For example:&#10;&#10;Write a compelling bid for a freelancer. Always start with a personalised opener that references the project. Highlight relevant experience. End with a confident call to action. Keep it under 200 words."></textarea>
-            <div class="char-counter"><span id="prompt-count">0</span> / 2000</div>
+            <label for="form-prompt">Bid prompt</label>
+            <textarea id="form-prompt" rows="8"
+              placeholder="Voice, tone, skills, signature line, language… e.g. 'Friendly, confident, mention 8 years of React experience, end with a clear next step.'"></textarea>
+            <p class="input-hint">This is injected into every bid generation for this freelancer.</p>
           </div>
 
-
+          <button id="add-btn" class="btn btn-green">Add freelancer</button>
+          <button id="cancel-edit-btn" class="btn btn-ghost-sm" style="display:none; margin-left:10px;">Cancel</button>
         </div>
-
       </div>
-    </div>
 
-    <!-- Save bar -->
-    <div style="display:flex; align-items:center; justify-content:flex-end; gap:16px; margin-top:24px;">
-      <span id="saved-badge" class="saved-badge">
-        ✅ Saved
-      </span>
-      <button id="save-btn" class="btn btn-primary">
-        💾 Save Settings
-      </button>
-    </div>
+      <!-- RIGHT: Registered freelancers list -->
+      <div class="panel">
+        <h3 class="panel-title">Registered freelancers</h3>
+        <div id="freelancer-list" class="freelancer-list">
+          <p class="empty-list">No freelancers added yet.</p>
+        </div>
+      </div>
 
+    </div>
   </div>
 
   <div id="toast"></div>

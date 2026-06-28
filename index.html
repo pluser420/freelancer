@@ -7,78 +7,80 @@
   <link rel="icon" type="image/svg+xml" href="favicon.svg" />
   <link rel="stylesheet" href="style.css" />
 </head>
-<body>
+<body class="dark">
 
   <!-- NAV -->
   <nav>
-    <a href="index.html" class="nav-logo">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/>
-      </svg>
-      BidCraft
-    </a>
-    <ul class="nav-links">
-      <li><a href="index.html" class="active">Bid Generator</a></li>
-      <li><a href="settings.html">Settings</a></li>
-    </ul>
-    <button class="theme-toggle" id="themeToggle" title="Toggle dark/light mode">
-      <span class="toggle-icon">🌙</span>
-      <span class="toggle-label">Dark</span>
-    </button>
+    <div class="nav-left">
+      <a href="index.html" class="nav-logo">
+        <img src="favicon.svg" alt="BidCraft" class="nav-logo-img" />
+        BidCraft
+      </a>
+      <div class="nav-pills">
+        <span class="pill pill-green" id="budget-pill">$ —</span>
+        <span class="pill pill-outline" id="time-pill">⏱ —</span>
+      </div>
+    </div>
+    <div class="nav-right">
+      <a href="index.html" class="nav-link active">Bids Generator</a>
+      <a href="settings.html" class="nav-link">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+        Settings
+      </a>
+      <button class="theme-toggle" id="themeToggle">
+        <span class="toggle-icon">☀️</span>
+      </button>
+    </div>
   </nav>
 
   <!-- MAIN -->
   <div class="container">
-    <!-- Warning if no API key -->
-    <div id="no-key-warning" class="card" style="border-color:#f0ad4e; background:#fffbf2; display:none; margin-bottom:20px;">
-      <p style="font-size:0.9rem; color:#856404;">
-        ⚠️ No API key found. Please go to
-        <a href="settings.html" style="color:var(--primary); font-weight:600;">Settings</a>
-        and add your OpenAI or Gemini key before generating bids.
-      </p>
-    </div>
-
     <div class="generator-grid">
+
       <!-- LEFT: Input -->
-      <div class="card">
-        <div class="card-title">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/>
-          </svg>
-          Project Post
+      <div class="panel">
+        <div class="panel-header">
+          <h2 class="panel-title">Project</h2>
+          <div class="bid-as-avatar" id="selectedAvatar">
+            <span>?</span>
+          </div>
         </div>
+
         <div class="form-group">
-          <label for="project-post">Paste the client's project description</label>
-          <textarea id="project-post" placeholder="e.g. I need a React developer to build a dashboard with charts, user auth, and REST API integration. Budget: $500. Timeline: 2 weeks." rows="10"></textarea>
+          <label for="bid-as">Bid as</label>
+          <select id="bid-as">
+            <option value="">— Select a freelancer —</option>
+          </select>
         </div>
-        <button id="generate-btn" class="btn btn-primary btn-block">
-          <span class="btn-text">✨ Generate Bid</span>
+
+        <div class="form-group">
+          <label for="project-post">Project post</label>
+          <textarea id="project-post" rows="10" placeholder="Paste the client's project description here…"></textarea>
+        </div>
+
+        <button id="generate-btn" class="btn btn-green btn-block">
+          <span class="btn-text">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+            Generate bid
+          </span>
           <span class="spinner"></span>
         </button>
       </div>
 
       <!-- RIGHT: Output -->
-      <div class="card">
-        <div class="card-title">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
-          </svg>
-          Generated Bid
+      <div class="panel">
+        <div class="panel-header">
+          <h2 class="panel-title">Generated bid</h2>
+          <button id="cut-btn" class="btn btn-ghost-sm" style="display:none;">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><line x1="20" y1="4" x2="8.12" y2="15.88"/><line x1="14.47" y1="14.48" x2="20" y2="20"/><line x1="8.12" y1="8.12" x2="12" y2="12"/></svg>
+            Cut
+          </button>
         </div>
-
         <div id="bid-output" class="bid-output empty">
-          Your bid will appear here.<br/>Click <strong>Generate Bid</strong> to start.
-        </div>
-
-        <div class="bid-actions">
-          <button id="copy-btn" class="btn btn-outline" style="display:none;">
-            📋 Copy
-          </button>
-          <button id="clear-btn" class="btn btn-danger" style="display:none;">
-            🗑 Clear
-          </button>
+          Your bid will appear here.
         </div>
       </div>
+
     </div>
   </div>
 
